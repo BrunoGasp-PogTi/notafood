@@ -75,8 +75,11 @@ ADITIVOS_PREOCUPANTES = {
     "E951",  # aspartame
 }
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
-CORS(app)  # liberado para todas as origens, uso em desenvolvimento
+CORS(app)  # liberado para todas as origens
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 
 def get_conn():
@@ -663,19 +666,38 @@ def get_historico():
     return jsonify(listar_historico(limite))
 
 
+@app.route("/")
 @app.route("/instalar")
 def instalar():
-    caminho_apk = APK_DIR / APK_FILENAME
-    apk_disponivel = caminho_apk.exists()
+    # Procura o APK em múltiplos caminhos possíveis
+    candidatos = [
+        APK_DIR / APK_FILENAME,
+        Path(__file__).parent.parent / "app" / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk",
+        Path(__file__).parent.parent / "app" / "build" / "app" / "outputs" / "flutter-apk" / "app-release.apk",
+    ]
+    caminho_apk = next((p for p in candidatos if p.exists()), None)
+    apk_disponivel = caminho_apk is not None
     tamanho_mb = round(caminho_apk.stat().st_size / (1024 * 1024), 1) if apk_disponivel else None
     return render_template("instalar.html", apk_disponivel=apk_disponivel, tamanho_mb=tamanho_mb)
 
 
+@app.route("/download")
 @app.route("/instalar/apk")
 def instalar_apk():
-    if not (APK_DIR / APK_FILENAME).exists():
+    candidatos = [
+        APK_DIR / APK_FILENAME,
+        Path(__file__).parent.parent / "app" / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk",
+        Path(__file__).parent.parent / "app" / "build" / "app" / "outputs" / "flutter-apk" / "app-release.apk",
+    ]
+    caminho_apk = next((p for p in candidatos if p.exists()), None)
+    if not caminho_apk:
         return jsonify({"mensagem": "APK ainda não disponível neste servidor."}), 404
-    return send_from_directory(APK_DIR, APK_FILENAME, as_attachment=True)
+    return send_from_directory(caminho_apk.parent, caminho_apk.name, as_attachment=True, download_name="NotaFood.apk")
+
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok", "app": "NotaFood API", "version": "1.0.0"})
 
 
 if __name__ == "__main__":

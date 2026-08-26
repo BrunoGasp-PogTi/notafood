@@ -1,13 +1,22 @@
 services:
   backend:
     build: ./backend
+    container_name: notafood_backend
+    restart: unless-stopped
     ports:
       - "6001:6001"
     environment:
       - NOTAFOOD_DB_PATH=/data/produtos.db
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyDTlyRRgfFXjpWMehOhHwghAtrZZ4Ki72g}
     volumes:
       - notafood_data:/data
       - ./backend/static/apk:/app/static/apk
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   notafood_data:
+

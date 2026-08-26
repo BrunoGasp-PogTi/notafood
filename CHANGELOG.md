@@ -3,6 +3,14 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-08-26
+
+### 🚀 Infraestrutura & Domínio de Produção
+- **Domínio Oficial Configurado:** `https://notafood.pogti.com.br` como endereço base padrão de produção.
+- **Backend Otimizado com Gunicorn & ProxyFix:** Suporte a proxy reverso com SSL/TLS (Nginx/Cloudflare/Caddy).
+- **Portal Web e Rota de Download Direto:** Rotas `/`, `/download` e `/health` para monitoramento e distribuição simplificada do APK.
+- **Arquitetura Leve de Processamento no Servidor:** O celular envia os dados e recebe a análise nutricional pronta, economizando memória, bateria e dados móveis.
+
 ---
 
 ## [1.0.0] - 2026-08-26

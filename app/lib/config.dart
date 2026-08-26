@@ -15,6 +15,6 @@
 class AppConfig {
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.15.5:6001',
+    defaultValue: 'https://notafood.pogti.com.br',
   );
 }

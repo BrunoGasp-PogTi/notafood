@@ -10,4 +10,4 @@ COPY templates/ ./templates/
 
 EXPOSE 6001
 
-CMD ["python", "app_sqlite.py"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:6001", "--timeout", "120", "app_sqlite:app"]
