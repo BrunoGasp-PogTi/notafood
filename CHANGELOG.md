@@ -3,6 +3,15 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-08-26
+
+### 🐛 Correções de Estabilidade
+- **Correção no Pipeline da Câmera (Scanner):**
+  - Removido o ciclo destrutivo de parada/reabertura do `MobileScannerController` durante transições de tela.
+  - Implementado sistema de debounce e cooldown de 1 segundo para evitar re-leituras indesejadas e manter a câmera sempre responsiva e fluida após múltiplos scans contínuos.
+
+---
+
 ## [1.1.0] - 2026-08-26
 
 ### 🚀 Infraestrutura & Domínio de Produção

@@ -46,27 +46,37 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     super.dispose();
   }
 
+  DateTime? _ultimoScan;
+
   Future<void> _aoDetectarCodigo(BarcodeCapture captura) async {
     if (_navegando) return;
 
-    final codigo = captura.barcodes.firstOrNull?.rawValue;
-    if (codigo == null || codigo.isEmpty) return;
+    final agora = DateTime.now();
+    if (_ultimoScan != null && agora.difference(_ultimoScan!).inMilliseconds < 1500) {
+      return;
+    }
 
-    await _abrirResultado(codigo);
+    final codigo = captura.barcodes.firstOrNull?.rawValue;
+    if (codigo == null || codigo.trim().isEmpty) return;
+
+    _ultimoScan = agora;
+    await _abrirResultado(codigo.trim());
   }
 
   Future<void> _abrirResultado(String codigo) async {
+    if (_navegando) return;
     setState(() => _navegando = true);
-    await _controller.stop();
 
-    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ResultadoScreen(codigo: codigo)),
     );
 
     if (!mounted) return;
-    setState(() => _navegando = false);
-    await _controller.start();
+    // Pequeno cooldown ao retornar para a câmera não re-ler o mesmo código instantaneamente
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (mounted) {
+      setState(() => _navegando = false);
+    }
   }
 
   void _aoBuscarManualmente() {
@@ -77,13 +87,18 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   }
 
   Future<void> _abrirFotoIA() async {
-    await _controller.stop();
-    if (!mounted) return;
+    if (_navegando) return;
+    setState(() => _navegando = true);
+
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const FotoRotuloScreen()),
     );
+
     if (!mounted) return;
-    await _controller.start();
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      setState(() => _navegando = false);
+    }
   }
 
   Future<void> _alternarLanterna() async {
