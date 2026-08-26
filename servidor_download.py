@@ -4,7 +4,14 @@ import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
-PORT = 8080
+def encontrar_porta_livre(porta_inicial=6002):
+    for p in range(porta_inicial, porta_inicial + 50):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('127.0.0.1', p)) != 0:
+                return p
+    return 6002
+
+PORT = encontrar_porta_livre(6002)
 APK_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
