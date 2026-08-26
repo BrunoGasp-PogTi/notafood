@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "6001:6001"
+    environment:
+      - NOTAFOOD_DB_PATH=/data/produtos.db
+    volumes:
+      - notafood_data:/data
+      - ./backend/static/apk:/app/static/apk
+
+volumes:
+  notafood_data:
