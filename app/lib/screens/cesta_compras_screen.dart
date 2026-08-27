@@ -161,25 +161,32 @@ class CestaComprasScreen extends ConsumerWidget {
 
                       // Discriminativo de Itens
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatPill(
-                            label: 'Saudáveis',
-                            count: notifier.totalSaudaveis,
-                            color: AppColors.healthGood,
-                            bgColor: AppColors.healthGoodBg,
+                          Expanded(
+                            child: _buildStatPill(
+                              label: 'Saudáveis',
+                              count: notifier.totalSaudaveis,
+                              color: AppColors.healthGood,
+                              bgColor: AppColors.healthGoodBg,
+                            ),
                           ),
-                          _buildStatPill(
-                            label: 'Moderados',
-                            count: notifier.totalModerados,
-                            color: AppColors.healthModerate,
-                            bgColor: AppColors.healthModerateBg,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _buildStatPill(
+                              label: 'Moderados',
+                              count: notifier.totalModerados,
+                              color: AppColors.healthModerate,
+                              bgColor: AppColors.healthModerateBg,
+                            ),
                           ),
-                          _buildStatPill(
-                            label: 'A Evitar',
-                            count: notifier.totalRuins,
-                            color: AppColors.healthBad,
-                            bgColor: AppColors.healthBadBg,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _buildStatPill(
+                              label: 'A Evitar',
+                              count: notifier.totalRuins,
+                              color: AppColors.healthBad,
+                              bgColor: AppColors.healthBadBg,
+                            ),
                           ),
                         ],
                       ),
@@ -257,29 +264,66 @@ class CestaComprasScreen extends ConsumerWidget {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: AppColors.border),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: corFundo,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: cor.withValues(alpha: 0.35), width: 1.5),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${produto.nota}',
-                          style: TextStyle(
-                            color: cor,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                          ),
+                    child: Material(
+                      color: Colors.white,
+                      child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      leading: SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: corFundo,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: cor.withValues(alpha: 0.3), width: 1.5),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              alignment: Alignment.center,
+                              child: produto.imagem.isNotEmpty
+                                  ? Image.network(
+                                      produto.imagem,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) => Icon(Icons.fastfood_rounded, color: cor, size: 22),
+                                    )
+                                  : Icon(Icons.fastfood_rounded, color: cor, size: 22),
+                            ),
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: cor,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  '${produto.nota}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       title: Text(
@@ -305,7 +349,8 @@ class CestaComprasScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  );
+                  ),
+                );
                 }),
               ],
             ),
@@ -319,27 +364,31 @@ class CestaComprasScreen extends ConsumerWidget {
     required Color bgColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 6),
-          Text(
-            '$count $label',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              '$count $label',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 11.5,
+              ),
             ),
           ),
         ],

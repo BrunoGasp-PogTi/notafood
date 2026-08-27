@@ -3,6 +3,17 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] - 2026-08-27
+
+### 🖼️ Exibição de Imagens dos Produtos & Correção da Aba Deslizante
+- **Fotos Reais dos Produtos:**
+  - Imagem do produto agora exibida com moldura e badge de nota na aba deslizante do scanner e em cada item da tela "Minha Compra".
+- **Correção da Câmera e Aba Cinza:**
+  - Eliminado o conflito de viewports aninhadas (`ListView` duplo) que gerava crash silencioso (caixa cinza) ao escanear múltiplos produtos em sequência.
+  - Câmera isolada em `RepaintBoundary` para escaneamento contínuo fluido e sem travamentos.
+
+---
+
 ## [1.5.0] - 2026-08-27
 
 ### 🚀 Experiência do Usuário & Leitor Contínuo

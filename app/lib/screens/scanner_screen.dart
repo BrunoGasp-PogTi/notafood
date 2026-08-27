@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../models/produto.dart';
 import '../providers/app_providers.dart';
 import '../services/cesta_service.dart';
 import '../theme.dart';
@@ -56,7 +55,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
 
   Future<void> _aoDetectarCodigo(BarcodeCapture captura) async {
     final agora = DateTime.now();
-    if (_ultimoScan != null && agora.difference(_ultimoScan!).inMilliseconds < 1200) {
+    if (_ultimoScan != null && agora.difference(_ultimoScan!).inMilliseconds < 1500) {
       return;
     }
 
@@ -66,20 +65,20 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     final codigoLimpo = codigo.trim();
     _ultimoScan = agora;
 
-    // Se já estiver exibindo o mesmo código, ignora
     if (_codigoDetectado == codigoLimpo) return;
 
     setState(() {
       _codigoDetectado = codigoLimpo;
     });
 
-    // Anima a aba para a posição visível
     if (_sheetController.isAttached) {
-      _sheetController.animateTo(
-        0.28,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-      );
+      try {
+        _sheetController.animateTo(
+          0.30,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      } catch (_) {}
     }
   }
 
@@ -117,19 +116,23 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // 1. Câmera Scanner Contínua
-          MobileScanner(
-            controller: _controller,
-            onDetect: _aoDetectarCodigo,
-            errorBuilder: (context, error) => const _ErroCamera(),
+          // 1. Câmera Scanner Contínua e Isolada
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: MobileScanner(
+                controller: _controller,
+                onDetect: _aoDetectarCodigo,
+                errorBuilder: (context, error) => const _ErroCamera(),
+              ),
+            ),
           ),
 
-          // 2. Mira e Linha Laser Animada (apenas se a aba não estiver expandida)
+          // 2. Mira e Linha Laser Animada
           Center(
             child: _MolduraDeEscaneamento(animacao: _animPosicao),
           ),
 
-          // 3. Barra Superior Transparente / Glassmorphism
+          // 3. Barra Superior Transparente
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -205,7 +208,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Botão de Destaque: Analisar com IA
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -222,8 +224,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                       onPressed: _abrirFotoIA,
                     ),
                     const SizedBox(height: 12),
-
-                    // Digitação manual de código
                     Row(
                       children: [
                         Expanded(
@@ -264,7 +264,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
           // 5. Aba Expansível Inferior (Quando há produto escaneado)
           if (_codigoDetectado != null)
             _AbaInferiorProduto(
-              key: ValueKey(_codigoDetectado),
               codigo: _codigoDetectado!,
               sheetController: _sheetController,
               onFechar: _fecharAba,
@@ -275,14 +274,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   }
 }
 
-/// Aba deslizante inferior do produto escaneado (Peek + Detalhes Completos)
+/// Aba deslizante inferior do produto escaneado
 class _AbaInferiorProduto extends ConsumerWidget {
   final String codigo;
   final DraggableScrollableController sheetController;
   final VoidCallback onFechar;
 
   const _AbaInferiorProduto({
-    super.key,
     required this.codigo,
     required this.sheetController,
     required this.onFechar,
@@ -294,11 +292,11 @@ class _AbaInferiorProduto extends ConsumerWidget {
 
     return DraggableScrollableSheet(
       controller: sheetController,
-      initialChildSize: 0.28,
-      minChildSize: 0.16,
+      initialChildSize: 0.30,
+      minChildSize: 0.18,
       maxChildSize: 0.90,
       snap: true,
-      snapSizes: const [0.28, 0.90],
+      snapSizes: const [0.30, 0.90],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -314,11 +312,11 @@ class _AbaInferiorProduto extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              // Barra de arrasto e cabeçalho
+              // Barra de arrasto e cabeçalho interativo
               GestureDetector(
                 onTap: () {
                   if (sheetController.isAttached) {
-                    final target = sheetController.size < 0.5 ? 0.90 : 0.28;
+                    final target = sheetController.size < 0.5 ? 0.90 : 0.30;
                     sheetController.animateTo(
                       target,
                       duration: const Duration(milliseconds: 300),
@@ -365,7 +363,7 @@ class _AbaInferiorProduto extends ConsumerWidget {
                           CircularProgressIndicator(color: AppColors.primary),
                           SizedBox(height: 12),
                           Text(
-                            'Identificando produto e calculando nota...',
+                            'Calculando nota nutricional...',
                             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                           ),
                         ],
@@ -375,7 +373,7 @@ class _AbaInferiorProduto extends ConsumerWidget {
                   error: (erro, _) {
                     return SingleChildScrollView(
                       controller: scrollController,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -416,10 +414,154 @@ class _AbaInferiorProduto extends ConsumerWidget {
                     );
                   },
                   data: (produto) {
-                    return _ConteudoSheetProduto(
+                    final cestaNotifier = ref.read(cestaComprasProvider.notifier);
+                    final estaNaCesta = ref.watch(cestaComprasProvider).any((p) => p.codigo == produto.codigo);
+                    final cor = AppColors.forScore(produto.nota);
+                    final corFundo = AppColors.forScoreBg(produto.nota);
+
+                    // Card de Resumo (Header do Peek)
+                    final headerWidget = Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: corFundo,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: cor.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        children: [
+                          // Thumbnail da Imagem do Produto com Badge de Nota
+                          SizedBox(
+                            width: 54,
+                            height: 54,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: cor.withValues(alpha: 0.3), width: 1.5),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                          child: produto.imagem.isNotEmpty
+                                      ? Image.network(
+                                          produto.imagem,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (context, error, stackTrace) => Icon(Icons.fastfood_rounded, color: cor, size: 24),
+                                        )
+                                      : Icon(Icons.fastfood_rounded, color: cor, size: 24),
+                                ),
+                                Positioned(
+                                  bottom: -2,
+                                  right: -2,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: cor,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.white, width: 1.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.15),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '${produto.nota}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Nome e Marca
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  produto.nome,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  produto.marca.isNotEmpty ? produto.marca : produto.classificacao.toUpperCase(),
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Botão Rápido de Adicionar à Compra
+                          IconButton.filled(
+                            style: IconButton.styleFrom(
+                              backgroundColor: estaNaCesta ? AppColors.healthGood : AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.all(10),
+                            ),
+                            icon: Icon(
+                              estaNaCesta ? Icons.check_rounded : Icons.add_shopping_cart_rounded,
+                              size: 20,
+                            ),
+                            tooltip: estaNaCesta ? 'Na Compra' : 'Adicionar à Compra',
+                            onPressed: () {
+                              if (estaNaCesta) {
+                                cestaNotifier.remover(produto.codigo);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('${produto.nome} removido da compra.'),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              } else {
+                                cestaNotifier.adicionar(produto);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('${produto.nome} adicionado à Minha Compra! 🛒'),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+
+                          // Botão Fechar / Liberar Scan
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 22),
+                            onPressed: onFechar,
+                          ),
+                        ],
+                      ),
+                    );
+
+                    // Renderiza o conteúdo detalhado com o header unificado (Zero nested scrollviews!)
+                    return ResultadoConteudo(
                       produto: produto,
-                      scrollController: scrollController,
-                      onFechar: onFechar,
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      header: headerWidget,
                     );
                   },
                 ),
@@ -428,145 +570,6 @@ class _AbaInferiorProduto extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ConteudoSheetProduto extends ConsumerWidget {
-  final Produto produto;
-  final ScrollController scrollController;
-  final VoidCallback onFechar;
-
-  const _ConteudoSheetProduto({
-    required this.produto,
-    required this.scrollController,
-    required this.onFechar,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cestaNotifier = ref.read(cestaComprasProvider.notifier);
-    final estaNaCesta = ref.watch(cestaComprasProvider).any((p) => p.codigo == produto.codigo);
-    final cor = AppColors.forScore(produto.nota);
-    final corFundo = AppColors.forScoreBg(produto.nota);
-
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      children: [
-        // Card Rápido (Visível no modo Peek)
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: corFundo,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: cor.withValues(alpha: 0.25)),
-          ),
-          child: Row(
-            children: [
-              // Badge de Nota
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: cor, width: 2.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cor.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${produto.nota}',
-                  style: TextStyle(
-                    color: cor,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Nome e Marca
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      produto.nome,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.5,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      produto.marca.isNotEmpty ? produto.marca : produto.classificacao.toUpperCase(),
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Botão Rápido de Adicionar à Compra
-              IconButton.filled(
-                style: IconButton.styleFrom(
-                  backgroundColor: estaNaCesta ? AppColors.healthGood : AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.all(10),
-                ),
-                icon: Icon(
-                  estaNaCesta ? Icons.check_rounded : Icons.add_shopping_cart_rounded,
-                  size: 20,
-                ),
-                tooltip: estaNaCesta ? 'Na Compra' : 'Adicionar à Compra',
-                onPressed: () {
-                  if (estaNaCesta) {
-                    cestaNotifier.remover(produto.codigo);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${produto.nome} removido da compra.'),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  } else {
-                    cestaNotifier.adicionar(produto);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${produto.nome} adicionado à Minha Compra! 🛒'),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-              ),
-
-              // Botão Fechar / Scan Próximo
-              IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 22),
-                onPressed: onFechar,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Análise Nutricional Completa (Quando o usuário puxa para cima)
-        ResultadoConteudo(produto: produto),
-      ],
     );
   }
 }
@@ -670,7 +673,6 @@ class _BordasMiraPainter extends CustomPainter {
     const cornerLength = 26.0;
     const radius = 18.0;
 
-    // Canto Superior Esquerdo
     final pathTL = Path()
       ..moveTo(0, cornerLength)
       ..lineTo(0, radius)
@@ -678,7 +680,6 @@ class _BordasMiraPainter extends CustomPainter {
       ..lineTo(cornerLength, 0);
     canvas.drawPath(pathTL, paint);
 
-    // Canto Superior Direito
     final pathTR = Path()
       ..moveTo(size.width - cornerLength, 0)
       ..lineTo(size.width - radius, 0)
@@ -686,7 +687,6 @@ class _BordasMiraPainter extends CustomPainter {
       ..lineTo(size.width, cornerLength);
     canvas.drawPath(pathTR, paint);
 
-    // Canto Inferior Esquerdo
     final pathBL = Path()
       ..moveTo(0, size.height - cornerLength)
       ..lineTo(0, size.height - radius)
@@ -694,7 +694,6 @@ class _BordasMiraPainter extends CustomPainter {
       ..lineTo(cornerLength, size.height);
     canvas.drawPath(pathBL, paint);
 
-    // Canto Inferior Direito
     final pathBR = Path()
       ..moveTo(size.width - cornerLength, size.height)
       ..lineTo(size.width - radius, size.height)

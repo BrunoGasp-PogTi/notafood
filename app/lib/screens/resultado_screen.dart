@@ -177,8 +177,17 @@ class _ErroConsulta extends StatelessWidget {
 
 class ResultadoConteudo extends ConsumerWidget {
   final Produto produto;
+  final ScrollController? controller;
+  final EdgeInsetsGeometry padding;
+  final Widget? header;
 
-  const ResultadoConteudo({super.key, required this.produto});
+  const ResultadoConteudo({
+    super.key,
+    required this.produto,
+    this.controller,
+    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 40),
+    this.header,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -202,8 +211,13 @@ class ResultadoConteudo extends ConsumerWidget {
     final bool altoSodio = (sal != null && sal > 1.5);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+      controller: controller,
+      padding: padding,
       children: [
+        if (header != null) ...[
+          header!,
+          const SizedBox(height: 14),
+        ],
         if (produto.origem == 'cache_dispositivo') const _AvisoSemConexao(),
 
         // 1. Alertas Críticos do Perfil Médico do Usuário (se houver restrição violada)
