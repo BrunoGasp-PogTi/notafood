@@ -24,6 +24,8 @@ class AppColors {
   // Semântica de Saúde (Notas de 0 a 100)
   static const healthExcellent = Color(0xFF10B981); // >= 75 (Verde)
   static const healthExcellentBg = Color(0xFFECFDF5);
+  static const healthGood = healthExcellent;
+  static const healthGoodBg = healthExcellentBg;
   
   static const healthModerate = Color(0xFFF59E0B); // 50-74 (Âmbar)
   static const healthModerateBg = Color(0xFFFFFBEB);

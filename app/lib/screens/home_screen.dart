@@ -63,8 +63,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 _buildNavItem(
                   indice: 1,
-                  icone: Icons.shopping_basket_rounded,
-                  rotulo: 'Cesta',
+                  icone: Icons.shopping_cart_rounded,
+                  rotulo: 'Minha Compra',
                   badgeContador: cesta.isNotEmpty ? cesta.length : null,
                 ),
                 _buildNavItem(

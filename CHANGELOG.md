@@ -3,6 +3,23 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-08-27
+
+### 🚀 Experiência do Usuário & Leitor Contínuo
+- **Leitor Contínuo com Aba Inferior Deslizante (Draggable Peek Sheet):**
+  - O scanner de câmera permanece ativo continuamente sem interrupções ao escanear produtos no mercado.
+  - Ao ler um código de barras, abre uma aba rápida na parte inferior com nome, marca, nota de saúde e botão rápido `[🛒 + Compra]`.
+  - Ao arrastar a aba para cima, exibe a análise nutricional completa, alertas e melhores trocas.
+- **Seção "Melhores Trocas":**
+  - Recomendações automáticas de alimentos saudáveis da mesma categoria com pontuações elevadas (80 a 100).
+- **Tela "Minha Compra" Inteligente:**
+  - Exibe a nota média global da cesta, distribuição entre saudáveis/moderados/a evitar.
+  - Gera recomendações e dicas personalizadas com base nos produtos presentes na compra.
+- **Menu Inferior Atualizado:**
+  - Abas: `Scanner`, `Minha Compra` (com badge de quantidade), `Histórico` e `Perfil`.
+
+---
+
 ## [1.4.0] - 2026-08-27
 
 ### 🌐 Descoberta Automática de Produtos na Web

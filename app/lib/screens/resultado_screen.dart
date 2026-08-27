@@ -216,13 +216,17 @@ class ResultadoConteudo extends ConsumerWidget {
         _HeroProdutoCard(produto: produto),
         const SizedBox(height: 16),
 
-        // 3. Troca Inteligente (Sugestões mais saudáveis)
+        // 3. Melhores Trocas (Sugestões mais saudáveis)
         if (alternativas.isNotEmpty) ...[
-          _SecaoTrocaInteligente(alternativas: alternativas),
+          _SecaoMelhoresTrocas(alternativas: alternativas),
           const SizedBox(height: 16),
         ],
 
-        // 4. Alertas de Lupa ANVISA (Se houver excesso)
+        // 4. Botão Adicionar à Compra
+        _BotaoAdicionarCompra(produto: produto),
+        const SizedBox(height: 16),
+
+        // 5. Alertas de Lupa ANVISA (Se houver excesso)
         if (altoAcucar || altoGordura || altoSodio) ...[
           _SecaoLupasAnvisa(
             altoAcucar: altoAcucar,
@@ -232,17 +236,176 @@ class ResultadoConteudo extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
 
-        // 5. Matriz de Macronutrientes (Cards Visuais)
+        // 6. Matriz de Macronutrientes (Cards Visuais)
         _MatrizNutricional(produto: produto),
         const SizedBox(height: 16),
 
-        // 6. Detalhamento da Pontuação (Positivos vs Negativos)
+        // 7. Detalhamento da Pontuação (Positivos vs Negativos)
         _SecaoCriterios(produto: produto),
         const SizedBox(height: 16),
 
-        // 7. Ingredientes & Aditivos
+        // 8. Ingredientes & Aditivos
         _SecaoIngredientesEAditivos(produto: produto),
       ],
+    );
+  }
+}
+
+class _BotaoAdicionarCompra extends ConsumerWidget {
+  final Produto produto;
+
+  const _BotaoAdicionarCompra({required this.produto});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cestaNotifier = ref.read(cestaComprasProvider.notifier);
+    final estaNaCesta = ref.watch(cestaComprasProvider).any((p) => p.codigo == produto.codigo);
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: Icon(
+          estaNaCesta ? Icons.check_circle_rounded : Icons.shopping_cart_rounded,
+          size: 20,
+        ),
+        label: Text(
+          estaNaCesta ? 'Item Adicionado à Minha Compra' : 'Adicionar à Minha Compra',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: estaNaCesta ? AppColors.healthGood : AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        onPressed: () {
+          if (estaNaCesta) {
+            cestaNotifier.remover(produto.codigo);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${produto.nome} removido da compra.'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            cestaNotifier.adicionar(produto);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${produto.nome} adicionado à Minha Compra! 🛒'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SecaoMelhoresTrocas extends StatelessWidget {
+  final List<AlternativaSaudavel> alternativas;
+
+  const _SecaoMelhoresTrocas({required this.alternativas});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Melhores Trocas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Opções mais saudáveis da mesma categoria para substituir:',
+            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          for (final alt in alternativas) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${alt.nota}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          alt.nome,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          alt.motivo,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -307,112 +470,6 @@ class _SecaoAlertasPerfil extends StatelessWidget {
                           TextSpan(text: alerta.motivo),
                         ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SecaoTrocaInteligente extends StatelessWidget {
-  final List<AlternativaSaudavel> alternativas;
-
-  const _SecaoTrocaInteligente({required this.alternativas});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Troca Inteligente (Alternativas)',
-                style: TextStyle(
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Opções mais saudáveis da mesma categoria para substituir:',
-            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          for (final alt in alternativas) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryContainer.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${alt.nota}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          alt.nome,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13.5,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          alt.motivo,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.onPrimaryContainer,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],

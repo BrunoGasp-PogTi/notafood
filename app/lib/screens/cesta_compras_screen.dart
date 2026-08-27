@@ -5,7 +5,7 @@ import '../services/cesta_service.dart';
 import '../theme.dart';
 import 'resultado_screen.dart';
 
-/// Tela do Carrinho / Cesta de Compras Saudável
+/// Tela do Carrinho / Minha Compra Saudável
 class CestaComprasScreen extends ConsumerWidget {
   const CestaComprasScreen({super.key});
 
@@ -14,22 +14,23 @@ class CestaComprasScreen extends ConsumerWidget {
     final cesta = ref.watch(cestaComprasProvider);
     final notifier = ref.read(cestaComprasProvider.notifier);
     final score = notifier.scoreMedio;
+    final recomendacoes = notifier.recomendacoes;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Minha Cesta de Compras'),
+        title: const Text('Minha Compra'),
         actions: [
           if (cesta.isNotEmpty)
             IconButton(
-              tooltip: 'Limpar Cesta',
+              tooltip: 'Limpar Compra',
               icon: const Icon(Icons.delete_outline_rounded),
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Limpar cesta?'),
-                    content: const Text('Deseja remover todos os produtos da sua cesta atual?'),
+                    title: const Text('Limpar lista de compras?'),
+                    content: const Text('Deseja remover todos os produtos da sua lista atual?'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
                       TextButton(
@@ -64,12 +65,12 @@ class CestaComprasScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Sua cesta está vazia',
+                      'Sua lista de compras está vazia',
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Ao escanear produtos no supermercado, toque em "Adicionar à Cesta" para acompanhar a qualidade das suas compras.',
+                      'Ao escanear produtos no supermercado, toque no botão 🛒 para adicioná-los à sua compra e acompanhar a nota média.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
                     ),
@@ -77,11 +78,11 @@ class CestaComprasScreen extends ConsumerWidget {
                 ),
               ),
             )
-          : Column(
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                // 1. Painel de Score da Cesta
+                // 1. Painel de Score Médio da Compra
                 Container(
-                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -95,120 +96,254 @@ class CestaComprasScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: AppColors.forScoreBg(score),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.forScore(score), width: 3),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$score',
-                          style: TextStyle(
-                            color: AppColors.forScore(score),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              score >= 75
-                                  ? 'Cesta Muito Saudável! 🥗'
-                                  : (score >= 50 ? 'Cesta Equilibrada ⚖️' : 'Atenção aos Ultraprocessados ⚠️'),
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
+                      Row(
+                        children: [
+                          Container(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
+                              color: AppColors.forScoreBg(score),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.forScore(score), width: 3),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$score',
+                              style: TextStyle(
+                                color: AppColors.forScore(score),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 26,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${cesta.length} item(ns) analisado(s).',
-                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'NOTA MÉDIA DA COMPRA',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  score >= 75
+                                      ? 'Compra Saudável 🥗'
+                                      : (score >= 50 ? 'Compra Equilibrada ⚖️' : 'Atenção aos Ultraprocessados ⚠️'),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.forScore(score),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${cesta.length} produto(s) no carrinho',
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      const Divider(height: 1, color: AppColors.border),
+                      const SizedBox(height: 14),
+
+                      // Discriminativo de Itens
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatPill(
+                            label: 'Saudáveis',
+                            count: notifier.totalSaudaveis,
+                            color: AppColors.healthGood,
+                            bgColor: AppColors.healthGoodBg,
+                          ),
+                          _buildStatPill(
+                            label: 'Moderados',
+                            count: notifier.totalModerados,
+                            color: AppColors.healthModerate,
+                            bgColor: AppColors.healthModerateBg,
+                          ),
+                          _buildStatPill(
+                            label: 'A Evitar',
+                            count: notifier.totalRuins,
+                            color: AppColors.healthBad,
+                            bgColor: AppColors.healthBadBg,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                // 2. Lista de Itens na Cesta
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    itemCount: cesta.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final produto = cesta[index];
-                      final cor = AppColors.forScore(produto.nota);
-                      final corFundo = AppColors.forScoreBg(produto.nota);
+                const SizedBox(height: 16),
 
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                          leading: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: corFundo,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: cor.withValues(alpha: 0.35), width: 1.5),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '${produto.nota}',
+                // 2. Recomendações Inteligentes da Compra
+                if (recomendacoes.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.lightbulb_rounded, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Recomendações para sua Compra',
                               style: TextStyle(
-                                color: cor,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.onPrimaryContainer,
                               ),
                             ),
-                          ),
-                          title: Text(
-                            produto.nome,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
-                          ),
-                          subtitle: Text(
-                            produto.marca.isNotEmpty ? produto.marca : produto.classificacao.toUpperCase(),
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.healthBad, size: 20),
-                            onPressed: () => notifier.remover(produto.codigo),
-                          ),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => Scaffold(
-                                appBar: AppBar(title: const Text('Resultado')),
-                                body: ResultadoConteudo(produto: produto),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ...recomendacoes.map(
+                          (rec) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              rec,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                                height: 1.35,
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // 3. Título da Lista
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Text(
+                    'Produtos na sua Compra',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
+                const SizedBox(height: 8),
+
+                // 4. Lista de Produtos
+                ...cesta.map((produto) {
+                  final cor = AppColors.forScore(produto.nota);
+                  final corFundo = AppColors.forScoreBg(produto.nota);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: corFundo,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cor.withValues(alpha: 0.35), width: 1.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${produto.nota}',
+                          style: TextStyle(
+                            color: cor,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        produto.nome,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                      ),
+                      subtitle: Text(
+                        produto.marca.isNotEmpty ? produto.marca : produto.classificacao.toUpperCase(),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.healthBad, size: 22),
+                        onPressed: () => notifier.remover(produto.codigo),
+                      ),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => Scaffold(
+                            appBar: AppBar(title: const Text('Análise Nutricional')),
+                            body: ResultadoConteudo(produto: produto),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
+    );
+  }
+
+  Widget _buildStatPill({
+    required String label,
+    required int count,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$count $label',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
