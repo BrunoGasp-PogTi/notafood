@@ -5,8 +5,10 @@ import 'cache_service.dart';
 import 'gemini_direct_service.dart';
 import 'open_food_facts_direct.dart';
 
-/// Repositório híbrido: busca primeiro no cache do aparelho, depois no
-/// Open Food Facts direto pela internet. Não depende de nenhum servidor local!
+/// Repositório híbrido e resiliente:
+/// 1. Busca primeiro online (Open Food Facts direto pela internet 4G/5G/Wi-Fi).
+/// 2. Se não encontrar, tenta a API do Backend.
+/// 3. Se houver falha total de conexão, consulta o cache do aparelho (Modo Offline real).
 class ProdutoRepository {
   final CacheService cacheService;
   final OpenFoodFactsDirectService offService;
@@ -21,29 +23,41 @@ class ProdutoRepository {
   });
 
   Future<Produto> buscarProduto(String codigo) async {
-    // 1. Verifica cache local do dispositivo
-    final doCache = await cacheService.buscarProduto(codigo);
-    if (doCache != null) {
-      return doCache.copyWith(origem: 'cache_dispositivo');
+    bool falhaDeRede = false;
+
+    // 1. Tenta consulta ao vivo no Open Food Facts
+    try {
+      final prodOff = await offService.buscarProduto(codigo);
+      if (prodOff != null) {
+        await cacheService.salvarProduto(prodOff);
+        return prodOff;
+      }
+    } catch (_) {
+      falhaDeRede = true;
     }
 
-    // 2. Consulta Open Food Facts diretamente pela internet (4G/5G/Wi-Fi)
-    final prodOff = await offService.buscarProduto(codigo);
-    if (prodOff != null) {
-      await cacheService.salvarProduto(prodOff);
-      return prodOff;
-    }
-
-    // 3. Fallback: Se houver backend configurado, tenta nele também
+    // 2. Se houver backend configurado, tenta nele também
     if (apiClient != null) {
       try {
         final prodApi = await apiClient!.buscarProduto(codigo);
         await cacheService.salvarProduto(prodApi);
         return prodApi;
-      } catch (_) {}
+      } catch (e) {
+        if (e is! ProdutoNaoEncontradoException) {
+          falhaDeRede = true;
+        }
+      }
     }
 
-    // 4. Produto não encontrado
+    // 3. Se deu erro de rede, tenta recuperar do cache local do aparelho
+    if (falhaDeRede) {
+      final doCache = await cacheService.buscarProduto(codigo);
+      if (doCache != null) {
+        return doCache.copyWith(origem: 'cache_dispositivo');
+      }
+    }
+
+    // 4. Produto não encontrado em nenhuma base
     throw ProdutoNaoEncontradoException(
       codigo: codigo,
       mensagem: 'Produto ainda não cadastrado na base pública. Tire uma foto do rótulo para a IA calcular a nota!',

@@ -154,28 +154,57 @@ def extrair_alergenos(produto_off):
     return [tag.split(":")[-1] for tag in tags]
 
 
-def calcular_nota(nova, nutrientes, aditivos):
+def inferir_nova(nome, ingredientes="", categorias=None):
+    categorias = categorias or []
+    texto = f"{nome} {ingredientes} {' '.join(categorias)}".lower()
+
+    # 1. Ultraprocessados evidentes
+    if any(p in texto for p in (
+        "chips", "batata frita", "ruffles", "doritos", "cheetos", "lays", "lay's", "pringles",
+        "salgadinho", "snack", "refrigerante", "coca-cola", "coca cola", "pepsi", "fanta",
+        "guaraná", "sprite", "biscoito", "bolacha", "recheado", "wafer", "oreo", "passatempo",
+        "empanado", "nugget", "salsicha", "linguiça", "mortadela", "presunto", "miojo",
+        "macarrão instantâneo", "achocolatado", "energético", "red bull", "monster", "sorvete",
+        "margarina", "bala", "pirulito", "goma de mascar", "gordura vegetal hidrogenada",
+        "gordura hidrogenada", "aromatizante", "realçador de sabor", "glutamato monossódico",
+        "maltodextrina"
+    )):
+        return 4
+
+    # 2. Processados
+    if any(p in texto for p in ("conserva", "atum em óleo", "sardinha", "queijo", "pão artesanal", "pão francês")):
+        return 3
+
+    # 3. Ingredientes Culinários
+    if any(p in texto for p in ("azeite", "óleo", "manteiga", "açúcar", "sal refinado", "farinha")):
+        return 2
+
+    # 4. In Natura / Minimamente processado
+    if any(p in texto for p in ("fruta", "legume", "verdura", "arroz", "feijão", "ovo", "leite integral", "água")):
+        return 1
+
+    return 0
+
+
+def calcular_nota(nova, nutrientes, aditivos, nome_produto="", ingredientes=""):
     """
     Calcula a nota (0-100) e a lista de critérios que a justificam.
-    Pesos, em ordem de importância:
-      1. Classificação NOVA (nível de processamento)
-      2. Perfil nutricional (açúcar, gordura saturada, sódio, fibra, proteína)
-      3. Aditivos (quantidade e presença de itens mais controversos)
-
-    `nutrientes` é um dict normalizado (mesmos valores por 100g independente
-    da origem — Open Food Facts ou digitados/lidos manualmente pelo usuário):
-    acucar_100g, gordura_saturada_100g, sal_100g, fibra_100g, proteina_100g.
     """
     pontos = 100
     criterios = []
 
-    if nova in PENALIDADE_NOVA:
-        efeito = PENALIDADE_NOVA[nova]
+    nova_final = nova or 0
+    if nova_final == 0 and (nome_produto or ingredientes):
+        nova_final = inferir_nova(nome_produto, ingredientes)
+
+    if nova_final in PENALIDADE_NOVA:
+        efeito = PENALIDADE_NOVA[nova_final]
         pontos += efeito
         sinal = "+" if efeito >= 0 else ""
+        sufixo = " (identificado pelo tipo)" if (not nova or nova == 0) else ""
         criterios.append(
             {
-                "item": f"classificação NOVA {nova} ({DESCRICAO_NOVA[nova]})",
+                "item": f"classificação NOVA {nova_final} ({DESCRICAO_NOVA[nova_final]}){sufixo}",
                 "efeito": f"{sinal}{efeito} pts",
             }
         )
@@ -183,49 +212,70 @@ def calcular_nota(nova, nutrientes, aditivos):
         criterios.append({"item": "classificação NOVA não informada", "efeito": "0 pts"})
 
     acucar = nutrientes.get("acucar_100g")
-    if isinstance(acucar, (int, float)):
-        if acucar > 22.5:
-            pontos -= 15
-            criterios.append({"item": f"açúcar alto ({acucar:.1f}g/100g)", "efeito": "-15 pts"})
-        elif acucar > 5:
-            pontos -= 5
-            criterios.append({"item": f"açúcar moderado ({acucar:.1f}g/100g)", "efeito": "-5 pts"})
-
     gordura_sat = nutrientes.get("gordura_saturada_100g")
-    if isinstance(gordura_sat, (int, float)):
-        if gordura_sat > 5:
-            pontos -= 10
-            criterios.append(
-                {"item": f"gordura saturada alta ({gordura_sat:.1f}g/100g)", "efeito": "-10 pts"}
-            )
-        elif gordura_sat > 1.5:
-            pontos -= 5
-            criterios.append(
-                {"item": f"gordura saturada moderada ({gordura_sat:.1f}g/100g)", "efeito": "-5 pts"}
-            )
-
     sal = nutrientes.get("sal_100g")
-    if isinstance(sal, (int, float)):
-        if sal > 1.5:
-            pontos -= 10
-            criterios.append({"item": f"sódio/sal alto ({sal:.1f}g/100g)", "efeito": "-10 pts"})
-        elif sal > 0.3:
-            pontos -= 5
-            criterios.append({"item": f"sódio/sal moderado ({sal:.1f}g/100g)", "efeito": "-5 pts"})
-
     fibra = nutrientes.get("fibra_100g")
-    if isinstance(fibra, (int, float)):
-        if fibra > 6:
-            pontos += 10
-            criterios.append({"item": f"rico em fibras ({fibra:.1f}g/100g)", "efeito": "+10 pts"})
-        elif fibra > 3:
-            pontos += 5
-            criterios.append({"item": f"boa fonte de fibras ({fibra:.1f}g/100g)", "efeito": "+5 pts"})
-
     proteina = nutrientes.get("proteina_100g")
-    if isinstance(proteina, (int, float)) and proteina > 8:
-        pontos += 5
-        criterios.append({"item": f"rico em proteína ({proteina:.1f}g/100g)", "efeito": "+5 pts"})
+
+    sem_tabela_nutricional = (acucar is None and gordura_sat is None and sal is None)
+
+    if sem_tabela_nutricional:
+        nome_lower = nome_produto.lower()
+        if any(k in nome_lower for k in ("refrigerante", "coca", "pepsi", "fanta", "guaraná", "sprite", "soda")):
+            pontos -= 25
+            criterios.append({"item": "Estimativa de refrigerante: alto teor de açúcar adicionado", "efeito": "-25 pts"})
+        elif any(k in nome_lower for k in ("chips", "ruffles", "salgadinho", "batata frita", "doritos", "cheetos", "lays", "snack")):
+            pontos -= 35
+            criterios.append({"item": "Estimativa de salgadinho/chips: alto teor de gorduras saturadas e sódio", "efeito": "-35 pts"})
+        elif any(k in nome_lower for k in ("biscoito", "bolacha", "doce", "chocolate", "wafer", "recheado", "bala")):
+            pontos -= 25
+            criterios.append({"item": "Estimativa de confeitaria/biscoito: açúcares e gorduras", "efeito": "-25 pts"})
+        elif nova_final == 4:
+            pontos -= 20
+            criterios.append({"item": "Alimento ultraprocessado (tabela nutricional não informada na base pública)", "efeito": "-20 pts"})
+        elif nova_final == 0:
+            pontos = 50
+            criterios.append({"item": "Tabela nutricional ausente na base pública (tire foto do rótulo para precisão)", "efeito": "Base neutra"})
+    else:
+        if isinstance(acucar, (int, float)):
+            if acucar > 22.5:
+                pontos -= 15
+                criterios.append({"item": f"açúcar alto ({acucar:.1f}g/100g)", "efeito": "-15 pts"})
+            elif acucar > 12.5:
+                pontos -= 8
+                criterios.append({"item": f"açúcar moderado ({acucar:.1f}g/100g)", "efeito": "-8 pts"})
+
+        if isinstance(gordura_sat, (int, float)):
+            if gordura_sat > 5:
+                pontos -= 10
+                criterios.append(
+                    {"item": f"gordura saturada alta ({gordura_sat:.1f}g/100g)", "efeito": "-10 pts"}
+                )
+            elif gordura_sat > 1.5:
+                pontos -= 5
+                criterios.append(
+                    {"item": f"gordura saturada moderada ({gordura_sat:.1f}g/100g)", "efeito": "-5 pts"}
+                )
+
+        if isinstance(sal, (int, float)):
+            if sal > 1.5:
+                pontos -= 10
+                criterios.append({"item": f"sódio/sal alto ({sal:.1f}g/100g)", "efeito": "-10 pts"})
+            elif sal > 0.3:
+                pontos -= 5
+                criterios.append({"item": f"sódio/sal moderado ({sal:.1f}g/100g)", "efeito": "-5 pts"})
+
+        if isinstance(fibra, (int, float)):
+            if fibra > 6:
+                pontos += 10
+                criterios.append({"item": f"rico em fibras ({fibra:.1f}g/100g)", "efeito": "+10 pts"})
+            elif fibra > 3:
+                pontos += 5
+                criterios.append({"item": f"boa fonte de fibras ({fibra:.1f}g/100g)", "efeito": "+5 pts"})
+
+        if isinstance(proteina, (int, float)) and proteina > 8:
+            pontos += 5
+            criterios.append({"item": f"rico em proteína ({proteina:.1f}g/100g)", "efeito": "+5 pts"})
 
     if aditivos:
         penalidade_aditivos = min(len(aditivos) * 3, 15)
@@ -255,10 +305,12 @@ def calcular_nota(nova, nutrientes, aditivos):
     else:
         classificacao = "ruim"
 
-    return pontos, classificacao, criterios
+    return pontos, classificacao, criterios, nova_final
 
 
 def processa_produto(codigo, produto_off):
+    nome = produto_off.get("product_name_pt") or produto_off.get("product_name") or "Produto sem nome"
+    ingredientes = produto_off.get("ingredients_text_pt") or produto_off.get("ingredients_text") or ""
     aditivos = extrair_aditivos(produto_off)
     nova = produto_off.get("nova_group")
     nutrimentos_off = produto_off.get("nutriments") or {}
@@ -269,19 +321,21 @@ def processa_produto(codigo, produto_off):
         "fibra_100g": nutrimentos_off.get("fiber_100g"),
         "proteina_100g": nutrimentos_off.get("proteins_100g"),
     }
-    nota, classificacao, criterios = calcular_nota(nova, nutrientes, aditivos)
+    nota, classificacao, criterios, nova_final = calcular_nota(
+        nova, nutrientes, aditivos, nome_produto=nome, ingredientes=ingredientes
+    )
 
     return {
         "codigo": codigo,
-        "nome": produto_off.get("product_name_pt") or produto_off.get("product_name") or "Produto sem nome",
+        "nome": nome,
         "marca": produto_off.get("brands") or "",
         "quantidade": produto_off.get("quantity") or "",
         "imagem": produto_off.get("image_url") or produto_off.get("image_front_url") or "",
         "nota": nota,
         "classificacao": classificacao,
-        "nova": nova or 0,
+        "nova": nova_final,
         "nutriscore": (produto_off.get("nutriscore_grade") or "desconhecido").lower(),
-        "ingredientes": produto_off.get("ingredients_text_pt") or produto_off.get("ingredients_text") or "",
+        "ingredientes": ingredientes,
         "alergenos": extrair_alergenos(produto_off),
         "aditivos": aditivos,
         "criterios": criterios,
@@ -306,7 +360,13 @@ def processa_produto_manual(codigo, dados_formulario):
         "fibra_100g": dados_formulario.get("fibra_100g"),
         "proteina_100g": dados_formulario.get("proteina_100g"),
     }
-    nota, classificacao, criterios = calcular_nota(nova, nutrientes, aditivos)
+    nota, classificacao, criterios, nova_final = calcular_nota(
+        nova,
+        nutrientes,
+        aditivos,
+        nome_produto=dados_formulario.get("nome") or "",
+        ingredientes=dados_formulario.get("ingredientes") or "",
+    )
 
     return {
         "codigo": codigo,
@@ -316,7 +376,7 @@ def processa_produto_manual(codigo, dados_formulario):
         "imagem": "",
         "nota": nota,
         "classificacao": classificacao,
-        "nova": nova or 0,
+        "nova": nova_final,
         "nutriscore": "desconhecido",
         "ingredientes": dados_formulario.get("ingredientes") or "",
         "alergenos": alergenos,

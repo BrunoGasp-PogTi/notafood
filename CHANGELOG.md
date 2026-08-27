@@ -3,6 +3,18 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-08-27
+
+### 🚀 Melhorias de Precisão Nutricional e Rede
+- **Correção da Nota de Ultraprocessados (Ruffles, Salgadinhos e Refrigerantes):**
+  - Implementada inferência inteligente de classificação NOVA 4 para salgadinhos, batatas fritas (Ruffles, Lay's, Doritos), refrigerantes e doces.
+  - Alimentos ultraprocessados com tabela nutricional não preenchida na base pública agora recebem penalidades estimadas realistas (nota ~30-40) em vez de receberem nota 100 indevidamente.
+- **Correção do "Modo Offline" Falso:**
+  - O aplicativo agora realiza a busca online ao vivo primeiro (4G/5G/Wi-Fi).
+  - O cache local do dispositivo agora é acionado exclusivamente como contingência quando há queda real de internet.
+
+---
+
 ## [1.2.1] - 2026-08-26
 
 ### 🐛 Correções de Estabilidade

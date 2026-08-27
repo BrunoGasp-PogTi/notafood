@@ -57,23 +57,32 @@ class OpenFoodFactsDirectService {
       'proteina_100g': nutrimentos['proteins_100g'],
     };
 
+    final nome = (p['product_name_pt'] ?? p['product_name'] ?? 'Produto sem nome').toString();
+    final ingredientes = (p['ingredients_text_pt'] ?? p['ingredients_text'] ?? '').toString();
+
     final resultadoNota = NutricaoCalculator.calcularNota(
       nova: nova,
       nutrientes: nutrientes,
       aditivos: aditivos,
+      nomeProduto: nome,
+      ingredientes: ingredientes,
     );
+
+    final novaFinal = (nova != null && nova > 0)
+        ? nova
+        : NutricaoCalculator.inferirNova(nome: nome, ingredientes: ingredientes);
 
     return Produto(
       codigo: codigo,
-      nome: p['product_name_pt'] ?? p['product_name'] ?? 'Produto sem nome',
+      nome: nome,
       marca: p['brands'] ?? '',
       quantidade: p['quantity'] ?? '',
       imagem: p['image_url'] ?? p['image_front_url'] ?? '',
       nota: resultadoNota.nota,
       classificacao: resultadoNota.classificacao,
-      nova: nova ?? 0,
+      nova: novaFinal,
       nutriscore: (p['nutriscore_grade'] ?? 'desconhecido').toString().toLowerCase(),
-      ingredientes: p['ingredients_text_pt'] ?? p['ingredients_text'] ?? '',
+      ingredientes: ingredientes,
       alergenos: alergenos,
       aditivos: aditivos,
       criterios: resultadoNota.criterios,
