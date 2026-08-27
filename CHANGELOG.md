@@ -3,6 +3,16 @@
 Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-08-27
+
+### 🌐 Descoberta Automática de Produtos na Web
+- **Busca Automática na Web para Códigos Não Cadastrados:**
+  - Quando um produto não existe no banco aberto do Open Food Facts (ex: Batata Crinkle Aurora), o servidor realiza automaticamente uma busca na web pelo código de barras.
+  - Identifica o nome oficial do produto, marca, categoria e calcula a nota nutricional completa sem travar ou dar erro de produto não cadastrado.
+  - Salva o resultado no banco global SQLite para consultas instantâneas em scans futuros.
+
+---
+
 ## [1.3.0] - 2026-08-27
 
 ### 🚀 Melhorias de Precisão Nutricional e Rede

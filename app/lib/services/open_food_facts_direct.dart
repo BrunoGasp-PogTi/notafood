@@ -18,7 +18,7 @@ class OpenFoodFactsDirectService {
         headers: {
           'User-Agent': 'NotaFood/1.0 (Android Mobile App; https://github.com/BrunoGasp-PogTi/notafood)',
         },
-      ).timeout(const Duration(seconds: 6));
+      ).timeout(const Duration(milliseconds: 3000));
     } catch (_) {
       return null;
     }

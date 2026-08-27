@@ -11,8 +11,10 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 import base64
+import re
 
 import requests
+from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 
@@ -142,6 +144,33 @@ def buscar_off(codigo):
     if dados.get("status") != 1:
         return None
     return dados.get("product")
+
+
+def buscar_produto_web(codigo):
+    """Busca o nome do produto na web quando não encontrado no Open Food Facts."""
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        r = requests.post(
+            "https://html.duckduckgo.com/html/",
+            data={"q": f'"{codigo}"'},
+            headers=headers,
+            timeout=4,
+        )
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
+            for a in soup.select(".result__title"):
+                texto = a.text.strip()
+                m = re.search(r"^(.*?)\s*[-|–]\s*(?:GTIN|EAN|UPC|Cosmos|Preço|Comprar)", texto, re.IGNORECASE)
+                if m and len(m.group(1).strip()) > 3:
+                    return m.group(1).strip()
+                if codigo in texto:
+                    limpo = texto.replace(codigo, "").replace("-", "").strip()
+                    if len(limpo) > 4 and not limpo.startswith("http"):
+                        return limpo
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [AVISO] Falha na busca web: {e}")
+    return None
+
 
 
 def extrair_aditivos(produto_off):
@@ -458,6 +487,51 @@ def monta_resposta(dados, origem):
     return resposta
 
 
+def processa_produto_web(codigo, nome_web):
+    nome_limpo = nome_web.strip()
+    marca = ""
+    # Tenta extrair marcas conhecidas se presentes no nome
+    marcas = (
+        "Aurora", "Perdigão", "Sadia", "Nestlé", "Garoto", "Lacta", "Danone", "Qualy",
+        "Seara", "Friboi", "Bauducco", "M. Dias Branco", "Mabel", "Marilan", "Quaker",
+        "Knorr", "Hellmann's", "Heinz", "Vigor", "Piracanjuba", "Itambé", "Elegê",
+        "Batavo", "Parmalat", "Coca-Cola", "Pepsi", "Ambev", "Ruffles", "Doritos",
+        "Cheetos", "Lay's", "Pringles", "Toddynho", "Nescau", "Oreo", "Passatempo"
+    )
+    for m in marcas:
+        if m.lower() in nome_limpo.lower():
+            marca = m
+            break
+
+    nota, classificacao, criterios, nova_final = calcular_nota(
+        None, {}, [], nome_produto=nome_limpo
+    )
+
+    return {
+        "codigo": codigo,
+        "nome": nome_limpo.title(),
+        "marca": marca,
+        "quantidade": "",
+        "imagem": "",
+        "nota": nota,
+        "classificacao": classificacao,
+        "nova": nova_final,
+        "nutriscore": "desconhecido",
+        "ingredientes": "",
+        "alergenos": [],
+        "aditivos": [],
+        "criterios": criterios,
+        "nutrientes": {
+            "acucar_100g": None,
+            "gordura_saturada_100g": None,
+            "sal_100g": None,
+            "fibra_100g": None,
+            "proteina_100g": None,
+        },
+        "ultima_consulta": datetime.utcnow().isoformat(),
+    }
+
+
 @app.route("/produto/<codigo>", methods=["GET"])
 def get_produto(codigo):
     codigo = codigo.strip()
@@ -476,12 +550,21 @@ def get_produto(codigo):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] [OK] Sucesso Open Food Facts: {dados.get('nome')} (Nota: {dados.get('nota')})")
         return jsonify(monta_resposta(dados, origem="openfoodfacts"))
 
-    # Fallback: Se já tinhamos um cache antigo, use
+    # Fallback 1: Se o Open Food Facts não tiver, busca o produto na Web (DuckDuckGo / Cosmos)
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] [WEB] OFF 404, buscando produto na Web para {codigo}...")
+    nome_web = buscar_produto_web(codigo)
+    if nome_web:
+        dados = processa_produto_web(codigo, nome_web)
+        salvar_cache(dados)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [OK] Sucesso Busca Web: {dados.get('nome')} (Nota: {dados.get('nota')})")
+        return jsonify(monta_resposta(dados, origem="busca_web"))
+
+    # Fallback 2: Se já tínhamos um cache antigo, use
     if cache:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] [AVISO] OFF indisponivel, usando cache anterior: {cache.get('nome')}")
         return jsonify(monta_resposta(cache, origem="base_local"))
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] [404] Produto {codigo} nao cadastrado no Open Food Facts.")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] [404] Produto {codigo} nao cadastrado no Open Food Facts nem na Web.")
     return (
         jsonify(
             {
