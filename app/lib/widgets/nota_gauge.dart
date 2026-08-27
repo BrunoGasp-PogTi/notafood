@@ -92,10 +92,10 @@ class NotaGauge extends StatelessWidget {
                       Text(
                         '$nota',
                         style: TextStyle(
-                          fontSize: tamanho * 0.28,
+                          fontSize: tamanho * 0.23,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
-                          letterSpacing: -1.5,
+                          letterSpacing: -1.0,
                           height: 1,
                         ),
                       ),
@@ -104,7 +104,7 @@ class NotaGauge extends StatelessWidget {
                         child: Text(
                           '/100',
                           style: TextStyle(
-                            fontSize: tamanho * 0.09,
+                            fontSize: tamanho * 0.085,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textMuted,
                           ),

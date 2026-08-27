@@ -4,20 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:notafood/models/criterio.dart';
-import 'package:notafood/models/historico_item.dart';
 import 'package:notafood/models/produto.dart';
 import 'package:notafood/providers/app_providers.dart';
 import 'package:notafood/screens/resultado_screen.dart';
-import 'package:notafood/services/api_client.dart';
 import 'package:notafood/services/api_exceptions.dart';
 
-class _ApiClientSucesso extends ApiClient {
-  _ApiClientSucesso() : super(baseUrl: 'http://fake');
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
-  @override
-  Future<Produto> buscarProduto(String codigo) async {
-    return Produto(
-      codigo: codigo,
+  testWidgets('mostra nota, nome e critérios em caso de sucesso', (tester) async {
+    final produtoMock = Produto(
+      codigo: '123',
       origem: 'openfoodfacts',
       nome: 'Produto Teste',
       marca: 'Marca Teste',
@@ -32,59 +31,46 @@ class _ApiClientSucesso extends ApiClient {
       aditivos: const [],
       criterios: const [Criterio(item: 'critério de teste', efeito: '+10 pts')],
     );
-  }
 
-  @override
-  Future<List<HistoricoItem>> buscarHistorico({int limite = 20}) async => const [];
-}
-
-class _ApiClientNaoEncontrado extends ApiClient {
-  _ApiClientNaoEncontrado() : super(baseUrl: 'http://fake');
-
-  @override
-  Future<Produto> buscarProduto(String codigo) {
-    throw ProdutoNaoEncontradoException(
-      codigo: codigo,
-      mensagem: 'Produto não encontrado na base do Open Food Facts.',
-    );
-  }
-
-  @override
-  Future<List<HistoricoItem>> buscarHistorico({int limite = 20}) async => const [];
-}
-
-void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-  });
-
-  testWidgets('mostra nota, nome e critérios em caso de sucesso', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(_ApiClientSucesso())],
+        overrides: [
+          produtoProvider('123').overrideWith((ref) => Future.value(produtoMock)),
+        ],
         child: const MaterialApp(home: ResultadoScreen(codigo: '123')),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('80'), findsOneWidget);
+    expect(find.text('80'), findsWidgets);
     expect(find.text('Produto Teste'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('critério de teste'), 200);
     expect(find.text('critério de teste'), findsOneWidget);
     expect(find.text('+10 pts'), findsOneWidget);
   });
 
-  testWidgets('mostra tela de não encontrado com CTA para o OFF', (tester) async {
+  testWidgets('mostra tela de não cadastrado quando o produto não existe', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(_ApiClientNaoEncontrado())],
+        overrides: [
+          produtoProvider('000').overrideWith(
+            (ref) => Future.error(
+              ProdutoNaoEncontradoException(
+                codigo: '000',
+                mensagem: 'Produto não cadastrado.',
+              ),
+            ),
+          ),
+        ],
         child: const MaterialApp(home: ResultadoScreen(codigo: '000')),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Produto não encontrado'), findsOneWidget);
-    expect(find.text('Contribuir no Open Food Facts'), findsOneWidget);
+    expect(find.text('Produto não cadastrado'), findsOneWidget);
+    expect(find.text('Ver no Open Food Facts'), findsOneWidget);
   });
 }
